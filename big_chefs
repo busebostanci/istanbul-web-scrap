@@ -1,0 +1,44 @@
+import requests
+import json
+import pandas as pd
+
+headers = {
+    "authority": "www.bigchefs.com.tr",
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-language": "tr-TR,tr;q=0.9,en-US;q=0.8,en;q=0.7",
+    "cache-control": "max-age=0",
+    "cookie": "activeLanguageCode=tr-tr; ...",  # Your complete cookie data here
+    "referer": "https://www.google.com/",
+    # Add other headers here as well
+}
+
+url = "https://www.bigchefs.com.tr/tr-tr/subeler"
+response = requests.get(url, headers=headers)
+
+if response.status_code == 200:
+    # Extract JSON data from the response content
+    json_data_start = response.content.find(b'var locations = ') + len('var locations = ')
+    json_data_end = response.content.find(b';', json_data_start)
+    json_text = response.content[json_data_start:json_data_end]
+
+    locations = json.loads(json_text)
+
+    data_to_export = []
+    for location in locations:
+        if location["title"] == "İstanbul":
+            for item in location["items"]:
+                lat_lng = item["map"]["lat_lng"].split(',')
+                lat = lat_lng[0]
+                lng = lat_lng[1]
+                title = item["title"]
+                address = item["address"]
+                data_to_export.append({"Lat": lat, "Lng": lng, "Title": title, "Address": address})
+
+    df = pd.DataFrame(data_to_export)
+
+    # Export the DataFrame to an Excel file
+    excel_filename = "bigchefs.xlsx"
+    df.to_excel(excel_filename, index=False)
+    print(f"Data exported to {excel_filename}")
+else:
+    print("Failed to fetch data")
